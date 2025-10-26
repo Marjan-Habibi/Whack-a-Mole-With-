@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Whack-a-Mole — With 🐹</title>
+  <style>
+    :root{
+      /* base colors for day (light) */
+      --bg-top-day: #e6f7ff;
+      --bg-bottom-day: #cfefff;
+      --card-day: #ffffff;
+      --text-day: #0b2130;
+      --muted-day: #475b66;
+      --accent-day: #ffb86b;
+
+      /* base colors for night (dark) */
+      --bg-top-night: #071029;
+      --bg-bottom-night: #0d1b2a;
+      --card-night: #0b1220;
+      --text-night: #e6eef8;
+      --muted-night: #94a3b8;
+      --accent-night: #ffb86b;
+
+      /* shared */
+      --accent: var(--accent-day);
+      --muted: var(--muted-day);
+      --card: var(--card-day);
+      --bg-top: var(--bg-top-day);
+      --bg-bottom: var(--bg-bottom-day);
+      --text: var(--text-day);
+
+      transition: background 520ms ease, color 520ms ease;
+    }
+
+    /* night theme sets */
+    .night {
+      --bg-top: var(--bg-top-night);
+      --bg-bottom: var(--bg-bottom-night);
+      --card: var(--card-night);
+      --text: var(--text-night);
+      --muted: var(--muted-night);
+      --accent: var(--accent-night);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg-bottom) 100%);
+      font-family:system-ui,-apple-system,Helvetica,Arial;
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      transition: background 520ms ease, color 520ms ease;
+    }
+
+    .container{width:980px;max-width:95%;padding:20px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    .controls{display:flex;gap:8px;align-items:center}
+    button{background:var(--accent);border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600;color:var(--text)}
+    button:disabled{opacity:0.6;cursor:not-allowed}
+    .meta{display:flex;gap:12px;align-items:center}
+    .meta .box{background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;min-width:84px;text-align:center; color:var(--text); background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);}
+
+    .board{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:18px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.12);background-color:var(--card)}
+    .hole{background:linear-gradient(180deg,#071226,#08182a);border-radius:10px;min-height:110px;display:flex;align-items:flex-end;justify-content:center;position:relative;overflow:hidden;padding-bottom:12px}
+    /* make holes slightly different in day/night */
+    body:not(.night) .hole{ background: linear-gradient(180deg,#eef6fb,#d7eefc); }
+    .mole{width:68px;height:68px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ffd29b,#ffb86b);display:flex;align-items:center;justify-content:center;font-weight:700;color:#1e293b;box-shadow:0 6px 14px rgba(0,0,0,0.15);transform:translateY(110%);transition:transform 160ms cubic-bezier(.22,.9,.28,1)}
+    .mole.up{transform:translateY(0%)}
+    .mole:active{transform:scale(0.95)}
+    footer{margin-top:14px;display:flex;justify-content:space-between;align-items:center}
+    .small{font-size:13px;color:var(--muted)}
+    .settings{display:flex;gap:8px;align-items:center}
+    select,input[type=number]{padding:6px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:inherit}
+
+    /* theme toggle switch */
+    .themeToggle{
+      display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid rgba(255,255,255,0.06);padding:6px 8px;border-radius:999px;
+    }
+    .switch{
+      width:44px;height:24px;background:linear-gradient(180deg,#fff,#eee);border-radius:999px;position:relative;cursor:pointer;
+      box-shadow:inset 0 1px 0 rgba(0,0,0,0.06);
+    }
+    .switch .knob{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--card);transition:left 240ms ease, background 240ms ease;}
+    .night .switch{ background: linear-gradient(180deg,#23303a,#131b22); }
+    .night .switch .knob{ left:22px; background:var(--accent); }
+
+    @media (max-width:600px){
+      .container{width:100%;padding:12px}
+      header{flex-direction:column;align-items:flex-start;gap:10px}
+      .controls{width:100%;justify-content:space-between}
+      .board{grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px;padding:14px}
+      .hole{min-height:96px;border-radius:10px}
+      .mole{width:56px;height:56px}
+      .meta{gap:8px}
+      .settings{flex-wrap:wrap}
+      button{padding:10px 12px}
+    }
+    @media (max-width:380px){
+      .board{grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px}
+      .mole{width:48px;height:48px}
+      .hole{min-height:110px}
+    }
+
+    .audio-controls{margin-top:8px;display:flex;gap:8px;align-items:center}
+    .audio-controls input[type=range]{width:120px}
+  </style>
+</head>
+<body>
+  <div class="container" id="gameWrap">
+    <header>
+      <h1 id="title">Whack-a-Mole — With 🐹</h1>
+
+      <div class="controls" role="toolbar" aria-label="Game controls">
+        <!-- Theme toggle -->
+        <div class="themeToggle" title="Toggle Day / Night">
+          <span style="font-size:14px;">🌞</span>
+          <div id="themeSwitch" class="switch" role="switch" aria-checked="false" tabindex="0">
+            <div class="knob" aria-hidden="true"></div>
+          </div>
+          <span style="font-size:14px;">🌙</span>
+        </div>
+
+        <button id="startBtn">Start</button>
+        <button id="stopBtn" disabled>Stop</button>
+
+        <div class="meta" aria-live="polite">
+          <div class="box">Score<br><strong id="score">0</strong></div>
+          <div class="box">Time<br><strong id="time">30</strong>s</div>
+          <div class="box">High<br><strong id="high">0</strong></div>
+        </div>
+      </div>
+    </header>
+
+    <section class="settings small" aria-hidden="false" style="margin-bottom:12px">
+      Duration: <input id="duration" type="number" min="5" max="300" value="30" style="width:80px"> seconds
+      <span style="margin-left:8px">Difficulty:</span>
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </section>
+
+    <main class="board" id="board">
+      <!-- holes created by JS -->
+    </main>
+
+    <div class="audio-controls small">
+      <label>Master volume</label>
+      <input id="vol" type="range" min="0" max="1" step="0.01" value="0.65">
+      <label style="margin-left:8px">BG volume</label>
+      <input id="bgVol" type="range" min="0" max="1" step="0.01" value="0.45">
+      <button id="mute">Mute</button>
+    </div>
+
+    <footer>
+      <div class="small">Tip: click the moles to score. Difficulty affects pop-up speed.</div>
+      <div><button id="resetHigh">Reset High</button></div>
+    </footer>
+  </div>
+
+  <template id="holeTpl">
+    <div class="hole">
+      <div class="mole" data-id="">🐹</div>
+    </div>
+  </template>
+
+  <script>
+    (function(){
+      // -----------------------
+      // THEME: Day / Night toggle
+      // -----------------------
+      const body = document.body;
+      const themeSwitch = document.getElementById('themeSwitch');
+
+      // initialize theme from localStorage or prefers-color-scheme
+      const saved = localStorage.getItem('mole-theme');
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isNight = saved ? (saved === 'night') : prefersDark;
+
+      function applyTheme(night){
+        if(night){
+          body.classList.add('night');
+          themeSwitch.setAttribute('aria-checked','true');
+        } else {
+          body.classList.remove('night');
+          themeSwitch.setAttribute('aria-checked','false');
+        }
+        // save
+        localStorage.setItem('mole-theme', night ? 'night' : 'day');
+      }
+
+      // handle click & keyboard (space/enter)
+      themeSwitch.addEventListener('click', ()=> applyTheme(!body.classList.contains('night')));
+      themeSwitch.addEventListener('keydown', (e)=>{
+        if(e.key===' '||e.key==='Enter'){ e.preventDefault(); applyTheme(!body.classList.contains('night')); }
+      });
+
+      // init theme on load
+      applyTheme(isNight);
+
+      // -----------------------
+      // AUDIO + GAME (kept simple)
+      // -----------------------
+      const AUDIO_URLS = {
+        bg:  'bg.mp3',
+        hit: 'hit.mp3',
+        win: 'winner.mp3',
+        lose:'over.mp3'
+      };
+
+      const audio = {
+        elements:{}, masterVol:0.65, bgVol:0.45, muted:false,
+        setMasterVol(v){ this.masterVol=v; for(const k in this.elements){ const el=this.elements[k]; if(!el) continue; el.volume = (k==='bg'? this.bgVol * v : v) * (this.muted?0:1); }},
+        setBgVol(v){ this.bgVol=v; if(this.elements.bg) this.elements.bg.volume = this.bgVol * this.masterVol * (this.muted?0:1); },
+        muteToggle(){ this.muted = !this.muted; this.setMasterVol(this.masterVol); },
+        play(key){ const el=this.elements[key]; if(!el) return; el.currentTime=0; el.play().catch(()=>{}); },
+        pause(key){ const el=this.elements[key]; if(!el) return; el.pause(); el.currentTime=0; },
+        pauseAll(){ for(const k in this.elements) this.pause(k); }
+      };
+
+      // DOM refs
+      const startBtn = document.getElementById('startBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const scoreEl = document.getElementById('score');
+      const timeEl = document.getElementById('time');
+      const highEl = document.getElementById('high');
+      const durationInput = document.getElementById('duration');
+      const difficultySelect = document.getElementById('difficulty');
+      const resetHighBtn = document.getElementById('resetHigh');
+      const vol = document.getElementById('vol');
+      const bgVol = document.getElementById('bgVol');
+      const muteBtn = document.getElementById('mute');
+      const board = document.getElementById('board');
+
+      // game variables
+      const HOLES = 9;
+      let score = 0;
+      let timeLeft = 30;
+      let highScore = Number(localStorage.getItem('whack_high')||0);
+      highEl.textContent = highScore;
+      let gameTimer = null, moleTimer = null, lastHole = null, running = false;
+      const tpl = document.getElementById('holeTpl');
+
+      // build board
+      for(let i=0;i<HOLES;i++){
+        const node = tpl.content.cloneNode(true);
+        const mole = node.querySelector('.mole');
+        mole.dataset.id = i;
+        board.appendChild(node);
+      }
+      const holes = Array.from(board.querySelectorAll('.hole'));
+
+      function rand(min,max){ return Math.round(Math.random()*(max-min))+min; }
+      function pickRandomHole(){
+        const idx = rand(0,holes.length-1);
+        if(idx === lastHole) return pickRandomHole();
+        lastHole = idx;
+        return holes[idx];
+      }
+
+      function moleUpOnce(){
+        const difficulty = difficultySelect.value;
+        let min=700,max=1400;
+        if(difficulty==='easy'){min=900;max=1500}
+        if(difficulty==='medium'){min=600;max=1100}
+        if(difficulty==='hard'){min=350;max=700}
+        const time = rand(min,max);
+        const hole = pickRandomHole();
+        const mole = hole.querySelector('.mole');
+        mole.classList.add('up');
+
+        // hide after 'time' ms
+        setTimeout(()=>{ mole.classList.remove('up'); }, time);
+
+        // schedule next mole
+        moleTimer = setTimeout(moleUpOnce, rand(250, 600));
+      }
+
+      // audio will be created after first user gesture (start) to avoid autoplay block
+      function ensureAudioCreated(){
+        if(audio.elements.bg) return;
+        audio.elements.bg = new Audio(AUDIO_URLS.bg); audio.elements.bg.loop=true;
+        audio.elements.bg.volume = Number(bgVol.value) * Number(vol.value);
+        audio.elements.hit = new Audio(AUDIO_URLS.hit); audio.elements.hit.volume = Number(vol.value);
+        audio.elements.win = new Audio(AUDIO_URLS.win); audio.elements.win.volume = Number(vol.value);
+        audio.elements.lose = new Audio(AUDIO_URLS.lose); audio.elements.lose.volume = Number(vol.value);
+      }
+
+      function startGame(){
+        if(running) return;
+
+        // create audio on user gesture and play bg
+        ensureAudioCreated();
+        audio.elements.bg.play().catch(()=>{ console.log('bg play blocked'); });
+
+        score = 0; scoreEl.textContent = score;
+        timeLeft = Number(durationInput.value) || 30; timeEl.textContent = timeLeft;
+        running = true;
+        startBtn.disabled = true; stopBtn.disabled = false; durationInput.disabled = true; difficultySelect.disabled = true;
+
+        moleUpOnce();
+        gameTimer = setInterval(()=>{
+          timeLeft--;
+          timeEl.textContent = timeLeft;
+          if(timeLeft<=0) endGame();
+        },1000);
+      }
+
+      function endGame(){
+        running = false;
+        startBtn.disabled = false; stopBtn.disabled = true; durationInput.disabled = false; difficultySelect.disabled = false;
+        clearInterval(gameTimer); clearTimeout(moleTimer);
+        board.querySelectorAll('.mole.up').forEach(m=>m.classList.remove('up'));
+
+        if(score>highScore){
+          highScore = score; localStorage.setItem('whack_high', String(highScore)); highEl.textContent = highScore;
+          audio.play('win');
+          setTimeout(()=>alert('Congratulations! New high score: '+score),50);
+        } else {
+          audio.play('lose');
+          setTimeout(()=>alert('Game over. Your score: '+score),50);
+        }
+        setTimeout(()=>audio.pause('bg'), 600);
+      }
+
+      function stopGame(){ if(!running) return endGame(); }
+
+      // hit handler
+      board.addEventListener('click', function(e){
+        const mole = e.target.closest('.mole');
+        if(!mole) return;
+        if(!mole.classList.contains('up')) return;
+        score++; scoreEl.textContent = score;
+        mole.classList.remove('up');
+        audio.play('hit');
+        mole.animate([{transform:'scale(1)'},{transform:'scale(0.85)'},{transform:'scale(1)'}],{duration:180});
+      });
+
+      // controls
+      startBtn.addEventListener('click', startGame);
+      stopBtn.addEventListener('click', stopGame);
+      resetHighBtn.addEventListener('click', ()=>{ if(confirm('Reset high score?')){localStorage.removeItem('whack_high');highScore=0;highEl.textContent='0'} });
+
+      // keyboard shortcuts (optional)
+      document.addEventListener('keydown', (e)=>{
+        if(e.key===' '){ e.preventDefault(); if(!running) startGame(); }
+        if(e.key==='Escape'){ if(running) stopGame(); }
+      });
+
+      // volume UI
+      vol.addEventListener('input', ()=> audio.setMasterVol(Number(vol.value)));
+      bgVol.addEventListener('input', ()=> audio.setBgVol(Number(bgVol.value)));
+      muteBtn.addEventListener('click', ()=> {
+        audio.muteToggle();
+        muteBtn.textContent = audio.muted ? 'Unmute' : 'Mute';
+      });
+
+    })();
+  </script>
+</body>
+</html>
